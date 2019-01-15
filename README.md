@@ -89,3 +89,47 @@ CALayer并不关心任何响应链事件，但它有一系列的方法帮你处�
     }
 }
 ```
+
+#### 视觉效果
+
+##### 图层蒙板
+
+CALayer有一个属性叫做mask，为CALayer类型，有和其他图层一样的绘制和布局属性。类似一个子图层，但mask图层定义了父图层的部分可见区域。
+
+mask图层的Color属性是无关紧要的，真正重要的是图层的轮廓。
+mask不限于静态图，任何有图层构成的都可以作为mask属性，mask可以通过代码甚至是动画实时生成。
+
+mask结合CAShapeLayer设置不规则圆角
+
+```
+//define path parameters
+CGRect rect = CGRectMake(50, 50, 100, 100);
+CGSize radii = CGSizeMake(20, 20);
+UIRectCorner corners = UIRectCornerTopRight | UIRectCornerBottomRight | UIRectCornerBottomLeft;
+//create path
+UIBezierPath *path = [UIBezierPath bezierPathWithRoundedRect:rect byRoundingCorners:corners cornerRadii:radii];
+```
+
+##### 组透明
+UIView有一个alpha的属性来确定视图的透明度。 CALayer有一个等同的属性叫opacity,这两个属性都是影响子层级的。
+
+透明度混合。当显示一个50%透明度的图层时，图层的每个像素都会一半显示自己的颜色，另一半显示图层下面的颜色。
+
+当设置了一个图层的透明度，你希望它包含的整个图层像一个整体一样的透明效果，可以通过设置info,plist文字中的UIViewGroupOpcity为YES,但这个属性会影响整个应用
+
+另一个方法是设置CALayer的一个叫做shouldRastersize属性，来实现组透明的效果。如果它被设置为YEW， 在应用透明度之前，图层及其子图层都会被整合成一个整体的图片，这样就没有透明度混合的问题。(该属性和rasterizationScale配套使用)
+
+```
+ button2.layer.shouldRasterize = YES;
+ button2.layer.rasterizationScale = [UIScreen mainScreen].scale;
+```
+
+#### 隐式动画
+
+##### 事务
+事务实际上是Core Animation来包含一系列动画集合的机制，任何用指定事务去改变可以做动画的图层属性都不会立刻发送变化，而是当事务一旦提交的时候开始用一个动画过度到新的值。
+
+任何可以做动画的图层属性都会被添加到栈顶的事务，事务可以用+begin和+commit分别来入栈或者出栈。
+
+Core Animation在每个run loop周期中自动开始一次新的事务(run loop是iOS负责收集用户输入，处理定时器或者网络事件并且重新绘制屏幕的东西)，即使不显示的用[CATransaction begin]开始一次事务，任何在一次run loop循环中属性的改变都会被集中起来，然后做一次0.25秒的动画。
+
