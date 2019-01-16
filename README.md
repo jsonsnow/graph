@@ -108,6 +108,8 @@ CGSize radii = CGSizeMake(20, 20);
 UIRectCorner corners = UIRectCornerTopRight | UIRectCornerBottomRight | UIRectCornerBottomLeft;
 //create path
 UIBezierPath *path = [UIBezierPath bezierPathWithRoundedRect:rect byRoundingCorners:corners cornerRadii:radii];
+shape.path = path.CGpath;
+self.layer.mask = shape;
 ```
 
 ##### 组透明
@@ -132,4 +134,22 @@ UIView有一个alpha的属性来确定视图的透明度。 CALayer有一个等�
 任何可以做动画的图层属性都会被添加到栈顶的事务，事务可以用+begin和+commit分别来入栈或者出栈。
 
 Core Animation在每个run loop周期中自动开始一次新的事务(run loop是iOS负责收集用户输入，处理定时器或者网络事件并且重新绘制屏幕的东西)，即使不显示的用[CATransaction begin]开始一次事务，任何在一次run loop循环中属性的改变都会被集中起来，然后做一次0.25秒的动画。
+
+##### 隐式动画的实现
+
+当CALayer的属性被修改时候，它会调用-actionForKey: 方法，传递属性的名称。分为如下几步
+
+* 图层首先检测它是否有委托，并且是否实现CALayerDelegate协议指定的actionForLayer: forKey 方法。如果有，直接调用并返回结果。
+* 如果没有委托，或者委托没有实现-actionForLayer: forKey 方法，图层接着检测包含属性名称对应行为映射的actions字典。
+* 如果actions字典没有包含对应的属性，那么图层接着在它的style字典接着搜索属性名。
+* 最后，如果在style里面也找不到对应的行为，那么图层将会将调用定义了每个属性的标志行为-defaultActionForKey:方法。
+
+-actionForKey:要么返回空（将不会有动画发生），要么是CAAction协议对应的对象，最后CALayer拿这个结果去对先前和当前值做动画。
+
+UIKit禁止隐试动画：每个UIView对它关联的图层都扮演了一个委托，并且提供了-actionForLayer: forKey的实现方法。当不在一个动画快的实现中，UIView对所有图层行为返回nil,但是在动画block范围内，它就返回了一个非空值。
+
+##### 呈现层/呈现树
+呈现层代表了在任何时刻当前外观效果，呈现图层仅仅当图层首次被提交的时候创建。
+
+
 
